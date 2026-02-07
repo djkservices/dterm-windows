@@ -44,11 +44,11 @@ jobs:
             [ -f "$f" ] || continue
             BASENAME=$(basename "$f")
             echo "Uploading $BASENAME..."
-            curl -s -X PUT \
+            curl -s --ftp-pasv --ftp-create-dirs \
               -u "$FTP_USER:$FTP_PASS" \
-              --ftp-create-dirs \
               -T "$f" \
-              "ftp://$FTP_HOST/public_html/dterm/api/updates/win/$BASENAME"
+              "ftp://$FTP_HOST/public_html/dterm/api/updates/win/$BASENAME" \
+              --retry 3 --retry-delay 5
           done
 
       - name: Upload artifacts
