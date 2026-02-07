@@ -2952,7 +2952,7 @@
   </div>
 
   <!-- SSH Connection Dialog -->
-  <div id="ssh-dialog" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeSshDialog()">
+  <div id="ssh-dialog" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;" onclick="if(event.target===this)closeSshDialog()">
     <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:20px;width:350px;">
       <h3 style="margin:0 0 12px;font-size:14px;color:#d1d5db;">SSH Connection</h3>
       <div id="ssh-saved-list" style="margin-bottom:12px;"></div>
@@ -3184,6 +3184,11 @@
       const saved = localStorage.getItem('dterm-settings');
       if (saved) {
         settings = { ...settings, ...JSON.parse(saved) };
+        // Reset invalid shells (e.g. /bin/zsh from old Mac settings)
+        const validShells = ['powershell.exe', 'cmd.exe'];
+        if (!validShells.includes(settings.shell)) {
+          settings.shell = defaultShell;
+        }
         document.getElementById('setting-font-size').value = settings.fontSize;
         document.getElementById('setting-shell').value = settings.shell;
         const themeEl = document.getElementById('setting-theme');
@@ -4790,6 +4795,7 @@
     }
 
     function handleCommandKey(e) {
+      e.stopPropagation();
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         selectedCommandIndex = Math.min(selectedCommandIndex + 1, filteredCommands.length - 1);
@@ -4883,6 +4889,7 @@
     }
 
     function handleTerminalSearchKey(e) {
+      e.stopPropagation();
       if (e.key === 'Enter') {
         if (e.shiftKey) {
           terminalSearchPrev();
@@ -4990,6 +4997,7 @@
     }
 
     document.getElementById('input-dialog-input').addEventListener('keydown', (e) => {
+      e.stopPropagation();
       if (e.key === 'Enter') confirmInputDialog();
       if (e.key === 'Escape') closeInputDialog();
     });
@@ -7350,7 +7358,7 @@
       });
       // Common commands
       const common = ['npm start', 'npm test', 'npm run build', 'npm run dev', 'npm install',
-        'python3', 'node', 'go run .', 'cargo run', 'cargo build', 'cargo test',
+        'python', 'node', 'go run .', 'cargo run', 'cargo build', 'cargo test',
         'make', 'make clean', 'make install', 'docker build .', 'docker-compose up',
         'git status', 'git log --oneline', 'pip install -r requirements.txt'];
       common.forEach(cmd => {
@@ -8240,6 +8248,10 @@
         captureShortcutCombo(e);
         return;
       }
+
+      // Don't intercept typing in input fields, textareas, or editable elements
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
 
       const shortcuts = getShortcuts();
       const metaPressed = e.metaKey || e.ctrlKey;
