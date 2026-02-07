@@ -35,16 +35,20 @@ jobs:
 
       - name: Upload Windows update files to server
         shell: bash
+        env:
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
         run: |
           for f in dist/*.exe dist/*.zip dist/latest.yml; do
             [ -f "$f" ] || continue
             BASENAME=$(basename "$f")
             echo "Uploading $BASENAME..."
             curl -s -X PUT \
-              -u "tools:4C98c622" \
+              -u "$FTP_USER:$FTP_PASS" \
               --ftp-create-dirs \
               -T "$f" \
-              "ftp://173.231.228.93/public_html/dterm/api/updates/win/$BASENAME"
+              "ftp://$FTP_HOST/public_html/dterm/api/updates/win/$BASENAME"
           done
 
       - name: Upload artifacts
