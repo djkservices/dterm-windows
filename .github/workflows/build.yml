@@ -43,12 +43,15 @@ jobs:
           for f in dist/*.exe dist/*.zip dist/latest.yml; do
             [ -f "$f" ] || continue
             BASENAME=$(basename "$f")
+            # URL-encode spaces in filename
+            URLNAME=$(echo "$BASENAME" | sed 's/ /%20/g')
             echo "Uploading $BASENAME..."
-            curl -s --ftp-pasv --ftp-create-dirs \
+            curl -v --ftp-pasv --ftp-create-dirs \
               -u "$FTP_USER:$FTP_PASS" \
               -T "$f" \
-              "ftp://$FTP_HOST/public_html/dterm/api/updates/win/$BASENAME" \
-              --retry 3 --retry-delay 5
+              "ftp://$FTP_HOST/public_html/dterm/api/updates/win/$URLNAME" \
+              --retry 3 --retry-delay 5 \
+              --connect-timeout 30
           done
 
       - name: Upload artifacts
