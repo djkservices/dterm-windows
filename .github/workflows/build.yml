@@ -33,6 +33,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Delete old Windows files from server
+        shell: bash
+        env:
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+        run: |
+          echo "Deleting old files from win/ directory..."
+          curl -v --ftp-pasv \
+            -u "$FTP_USER:$FTP_PASS" \
+            --list-only \
+            "ftp://$FTP_HOST/public_html/dterm/api/updates/win/" \
+            --connect-timeout 30 2>/dev/null | while read -r FILE; do
+            FILE=$(echo "$FILE" | tr -d '\r')
+            [ -z "$FILE" ] && continue
+            URLFILE=$(echo "$FILE" | sed 's/ /%20/g')
+            echo "  Deleting $FILE..."
+            curl -v --ftp-pasv \
+              -u "$FTP_USER:$FTP_PASS" \
+              -Q "DELE public_html/dterm/api/updates/win/$FILE" \
+              "ftp://$FTP_HOST/" \
+              --connect-timeout 30 2>/dev/null || true
+          done
+          echo "Old files deleted."
+
       - name: Upload Windows update files to server
         shell: bash
         env:
