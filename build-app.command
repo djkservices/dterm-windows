@@ -109,17 +109,17 @@ echo ""
 PREV_STATUS=""
 while true; do
     RUN_JSON=$(gh run view "$RUN_ID" --repo "$REPO" --json status,conclusion,jobs 2>/dev/null)
-    STATUS=$(echo "$RUN_JSON" | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).status" 2>/dev/null)
-    CONCLUSION=$(echo "$RUN_JSON" | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).conclusion" 2>/dev/null)
+    STATUS=$(echo "$RUN_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(d.status||'')" 2>/dev/null)
+    CONCLUSION=$(echo "$RUN_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(d.conclusion||'')" 2>/dev/null)
 
     # Get current step name from the active job
-    CURRENT_STEP=$(echo "$RUN_JSON" | node -p "
+    CURRENT_STEP=$(echo "$RUN_JSON" | node -e "
         const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
         const job = (d.jobs || []).find(j => j.status === 'in_progress') || (d.jobs || []).find(j => j.status === 'completed');
         if (!job) process.exit(0);
         const step = (job.steps || []).find(s => s.status === 'in_progress');
-        if (step) console.log(step.name);
-        else { const last = [...(job.steps || [])].reverse().find(s => s.status === 'completed'); if (last) console.log(last.name); }
+        if (step) { process.stdout.write(step.name); }
+        else { const last = [...(job.steps || [])].reverse().find(s => s.status === 'completed'); if (last) process.stdout.write(last.name); }
         " 2>/dev/null || true)
 
     if [ "$CURRENT_STEP" != "$PREV_STATUS" ] && [ -n "$CURRENT_STEP" ]; then
