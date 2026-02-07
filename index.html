@@ -3010,9 +3010,9 @@
     let showHidden = false;
     let allFiles = [];
     let clipboard = { file: null, action: null };
-    const isWindows = window.api && window.api.platform === 'win32';
-    const isMac = window.api && window.api.platform === 'darwin';
-    const defaultShell = isWindows ? 'powershell.exe' : '/bin/zsh';
+    const isWindows = true;
+    const isMac = false;
+    const defaultShell = 'powershell.exe';
 
     let settings = {
       fontSize: 14,
@@ -3477,40 +3477,24 @@
       if (wrapper && !wrapper.contains(e.target)) closeMenu();
     });
 
-    // Platform-aware UI initialization
+    // Windows UI initialization
     function initPlatformUI() {
       // Shell selector options
       const shellSelect = document.getElementById('setting-shell');
-      if (isWindows) {
-        shellSelect.innerHTML = '<option value="powershell.exe">PowerShell</option><option value="cmd.exe">CMD</option>';
-      } else {
-        shellSelect.innerHTML = '<option value="/bin/zsh">Zsh</option><option value="/bin/bash">Bash</option><option value="/bin/sh">Sh</option>';
-      }
+      shellSelect.innerHTML = '<option value="powershell.exe">PowerShell</option><option value="cmd.exe">CMD</option>';
 
       // Terminal profile buttons
       const profiles = document.getElementById('term-profiles');
-      const sshBtn = profiles.querySelector('[onclick*="showSshDialog"]');
-      if (isWindows) {
-        profiles.insertAdjacentHTML('afterbegin',
-          '<button class="term-profile-btn" onclick="createTerminal(\'powershell.exe\')" title="PowerShell">ps</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'cmd.exe\')" title="CMD">cmd</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'node\')" title="Node">node</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'python\')" title="Python">py</button>'
-        );
-      } else {
-        profiles.insertAdjacentHTML('afterbegin',
-          '<button class="term-profile-btn" onclick="createTerminal(\'/bin/zsh\')" title="Zsh">zsh</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'/bin/bash\')" title="Bash">bash</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'node\')" title="Node">node</button>' +
-          '<button class="term-profile-btn" onclick="createTerminal(\'python3\')" title="Python">py</button>'
-        );
-      }
+      profiles.insertAdjacentHTML('afterbegin',
+        '<button class="term-profile-btn" onclick="createTerminal(\'powershell.exe\')" title="PowerShell">ps</button>' +
+        '<button class="term-profile-btn" onclick="createTerminal(\'cmd.exe\')" title="CMD">cmd</button>' +
+        '<button class="term-profile-btn" onclick="createTerminal(\'node\')" title="Node">node</button>' +
+        '<button class="term-profile-btn" onclick="createTerminal(\'python\')" title="Python">py</button>'
+      );
 
-      // Titlebar padding — macOS needs 80px for traffic lights, Windows needs less
-      if (!isMac) {
-        const titleBar = document.getElementById('title-bar');
-        if (titleBar) titleBar.style.paddingLeft = '14px';
-      }
+      // Titlebar padding
+      const titleBar = document.getElementById('title-bar');
+      if (titleBar) titleBar.style.paddingLeft = '14px';
     }
 
     // Initialize
@@ -8042,17 +8026,17 @@
       '.cjs': (f) => `node "${f}"`,
       '.ts': (f) => `npx tsx "${f}"`,
       '.tsx': (f) => `npx tsx "${f}"`,
-      '.py': (f) => `python3 "${f}"`,
+      '.py': (f) => `python "${f}"`,
       '.rb': (f) => `ruby "${f}"`,
       '.go': (f) => `go run "${f}"`,
       '.rs': (f) => `cargo run`,
-      '.sh': (f) => `bash "${f}"`,
-      '.zsh': (f) => `zsh "${f}"`,
+      '.ps1': (f) => `powershell -ExecutionPolicy Bypass -File "${f}"`,
+      '.bat': (f) => `"${f}"`,
+      '.cmd': (f) => `"${f}"`,
       '.php': (f) => `php "${f}"`,
-      '.swift': (f) => `swift "${f}"`,
-      '.c': (f) => `gcc "${f}" -o /tmp/a.out && /tmp/a.out`,
-      '.cpp': (f) => `g++ "${f}" -o /tmp/a.out && /tmp/a.out`,
-      '.java': (f) => { const cls = f.split('/').pop().replace(/\.java$/, ''); return `javac "${f}" && java -cp "$(dirname '${f}')" ${cls}`; },
+      '.c': (f) => `gcc "${f}" -o "%TEMP%\\a.exe" && "%TEMP%\\a.exe"`,
+      '.cpp': (f) => `g++ "${f}" -o "%TEMP%\\a.exe" && "%TEMP%\\a.exe"`,
+      '.java': (f) => { const cls = f.split('\\').pop().replace(/\.java$/, ''); return `javac "${f}" && java ${cls}`; },
       '.pl': (f) => `perl "${f}"`,
       '.lua': (f) => `lua "${f}"`,
       '.r': (f) => `Rscript "${f}"`,
@@ -8149,9 +8133,9 @@
           const runtimeName = {
             '.js': 'node', '.mjs': 'node', '.cjs': 'node',
             '.ts': 'tsx', '.tsx': 'tsx',
-            '.py': 'python3', '.rb': 'ruby', '.go': 'go',
-            '.rs': 'cargo', '.sh': 'bash', '.zsh': 'zsh',
-            '.php': 'php', '.swift': 'swift',
+            '.py': 'python', '.rb': 'ruby', '.go': 'go',
+            '.rs': 'cargo', '.ps1': 'powershell', '.bat': 'cmd', '.cmd': 'cmd',
+            '.php': 'php',
             '.c': 'gcc', '.cpp': 'g++', '.java': 'javac',
             '.pl': 'perl', '.lua': 'lua', '.r': 'Rscript', '.R': 'Rscript'
           }[ext] || 'unknown';
@@ -8816,9 +8800,7 @@
           const cwd = await window.api.terminal.getCwd(t.id);
           const shellName = t.name;
           // Resolve shell path from name
-          const shellPath = isWindows
-            ? (shellName === 'powershell' ? 'powershell.exe' : shellName === 'cmd' ? 'cmd.exe' : settings.shell || defaultShell)
-            : (shellName === 'zsh' ? '/bin/zsh' : shellName === 'bash' ? '/bin/bash' : settings.shell || defaultShell);
+          const shellPath = shellName === 'powershell' ? 'powershell.exe' : shellName === 'cmd' ? 'cmd.exe' : settings.shell || defaultShell;
           // Serialize terminal buffer content (with ANSI escape codes for colors/formatting)
           let buffer = '';
           try {

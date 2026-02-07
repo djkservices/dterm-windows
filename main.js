@@ -39,16 +39,13 @@ function saveWindowState() {
 function createWindow() {
   const windowState = loadWindowState();
 
-  const isMac = process.platform === 'darwin';
-
   mainWindow = new BrowserWindow({
     x: windowState.x,
     y: windowState.y,
     width: windowState.width,
     height: windowState.height,
     backgroundColor: '#000000',
-    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
-    ...(isMac ? { trafficLightPosition: { x: 12, y: 10 } } : {}),
+    titleBarStyle: 'hidden',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -108,11 +105,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  app.quit();
 });
 
 // File System handlers
@@ -219,16 +212,10 @@ ipcMain.handle('terminal:getCwd', async (_, id) => {
   if (!ptyProcess) return null;
   try {
     const pid = ptyProcess.pid;
-    const result = execSync(`lsof -a -p ${pid} -d cwd -Fn 2>/dev/null`, {
+    const result = execSync(`wmic process where ProcessId=${pid} get ExecutablePath 2>nul || echo ""`, {
       encoding: 'utf-8',
       timeout: 2000
     });
-    const lines = result.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('n') && line.length > 1) {
-        return line.substring(1);
-      }
-    }
     return null;
   } catch {
     return null;
@@ -275,19 +262,12 @@ ipcMain.handle('dialog:openFile', async () => {
 
 // Terminal handlers
 ipcMain.handle('terminal:create', (_, id, shell, cwd) => {
-  const defaultShell = process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh';
-
-  const isWin = process.platform === 'win32';
-  const ptyProcess = pty.spawn(shell || defaultShell, [], {
-    name: isWin ? undefined : 'xterm-256color',
+  const ptyProcess = pty.spawn(shell || 'powershell.exe', [], {
     cols: 80,
     rows: 24,
     cwd: cwd || app.getPath('home'),
-    env: {
-      ...process.env,
-      ...(isWin ? {} : { TERM: 'xterm-256color' })
-    },
-    ...(isWin ? { useConpty: true } : {})
+    env: { ...process.env },
+    useConpty: true
   });
 
   terminals.set(id, ptyProcess);
@@ -470,7 +450,7 @@ ipcMain.handle('git:getBranch', async (_, dirPath) => {
 
 ipcMain.handle('tools:exec', async (_, command) => {
   // Whitelist allowed commands for security
-  const allowed = ['ping', 'traceroute', 'dig', 'nslookup', 'whois', 'curl', 'openssl', 'nc', 'echo', 'md5', 'wget', 'jq', 'base64', 'hostname', 'ifconfig', 'netstat', 'docker', 'npm', 'node', 'python3', 'git', 'head', 'tail', 'wc', 'sort', 'grep', 'awk', 'sed'];
+  const allowed = ['ping', 'tracert', 'nslookup', 'curl', 'openssl', 'echo', 'wget', 'hostname', 'ipconfig', 'netstat', 'docker', 'npm', 'node', 'python', 'git', 'sort', 'findstr', 'powershell', 'cmd', 'where', 'type', 'dir'];
   // Check all commands in pipes
   const parts = command.split(/\|/).map(s => s.trim().replace(/^[^a-zA-Z]*/, '').split(/\s+/)[0]);
   const allAllowed = parts.every(cmd => allowed.includes(cmd));
@@ -478,7 +458,7 @@ ipcMain.handle('tools:exec', async (_, command) => {
     return { error: `Command not allowed: ${parts.find(cmd => !allowed.includes(cmd))}` };
   }
   return new Promise((resolve) => {
-    exec(command, { timeout: 30000, maxBuffer: 1024 * 1024, encoding: 'utf-8', shell: '/bin/bash' }, (error, stdout, stderr) => {
+    exec(command, { timeout: 30000, maxBuffer: 1024 * 1024, encoding: 'utf-8' }, (error, stdout, stderr) => {
       resolve({ stdout: stdout || '', stderr: stderr || '', error: error ? error.message : null });
     });
   });
@@ -787,13 +767,13 @@ ipcMain.handle('git:pull', async (_, dirPath) => {
 
 ipcMain.handle('search:grep', async (_, dirPath, query, useRegex, caseSensitive) => {
   try {
-    const caseFlag = caseSensitive ? '' : '-i';
-    const regexFlag = useRegex ? '-E' : '-F';
-    const cmd = `grep -rn ${caseFlag} ${regexFlag} -- "${query.replace(/"/g, '\\"')}" "${dirPath}" 2>/dev/null | head -200`;
+    const escapedQuery = query.replace(/"/g, '\\"');
+    const caseFlag = caseSensitive ? '' : '/I';
+    const cmd = `findstr /S /N ${caseFlag} "${escapedQuery}" "${dirPath}\\*"`;
     const stdout = execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000, maxBuffer: 1024 * 1024 });
     return { stdout };
   } catch (e) {
-    if (e.status === 1) return { stdout: '' }; // grep returns 1 for no matches
+    if (e.status === 1) return { stdout: '' }; // findstr returns 1 for no matches
     return { error: e.message };
   }
 });
@@ -843,8 +823,8 @@ ipcMain.handle('runner:detectTasks', async (_, dirPath) => {
       tasks.push({ name: 'pip install -e .', command: 'pip install -e .', category: 'Python' });
     }
     if (fs.existsSync(path.join(dirPath, 'manage.py'))) {
-      tasks.push({ name: 'python manage.py runserver', command: 'python3 manage.py runserver', category: 'Django' });
-      tasks.push({ name: 'python manage.py migrate', command: 'python3 manage.py migrate', category: 'Django' });
+      tasks.push({ name: 'python manage.py runserver', command: 'python manage.py runserver', category: 'Django' });
+      tasks.push({ name: 'python manage.py migrate', command: 'python manage.py migrate', category: 'Django' });
     }
 
     // Rust — Cargo.toml
@@ -895,9 +875,9 @@ ipcMain.handle('snippets:save', async (_, snippets) => {
 // ============ Processes / Ports ============
 ipcMain.handle('processes:list', async () => {
   try {
-    const output = execSync('ps -eo pid,pcpu,pmem,comm --sort=-pcpu 2>/dev/null || ps aux', { encoding: 'utf-8', timeout: 5000 });
+    const output = execSync('tasklist /FO CSV /NH', { encoding: 'utf-8', timeout: 5000 });
     const lines = output.split('\n').filter(l => l.trim());
-    const header = lines.shift();
+    const header = 'Name,PID,Session,Session#,Memory';
     return { header, processes: lines.slice(0, 100) };
   } catch (e) {
     return { header: '', processes: [], error: e.message };
@@ -906,8 +886,8 @@ ipcMain.handle('processes:list', async () => {
 
 ipcMain.handle('processes:ports', async () => {
   try {
-    const output = execSync('lsof -iTCP -sTCP:LISTEN -nP 2>/dev/null || netstat -tlnp 2>/dev/null', { encoding: 'utf-8', timeout: 5000 });
-    const lines = output.split('\n').filter(l => l.trim());
+    const output = execSync('netstat -ano -p TCP', { encoding: 'utf-8', timeout: 5000 });
+    const lines = output.split('\n').filter(l => l.trim() && l.includes('LISTENING'));
     return lines;
   } catch (e) {
     return [];
@@ -1023,7 +1003,7 @@ ipcMain.handle('cloud:getBroadcast', async () => {
 // ============ LastPass Vault ============
 ipcMain.handle('lpass:checkInstalled', async () => {
   try {
-    execSync('which lpass', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    execSync('where lpass', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
     return { installed: true };
   } catch {
     return { installed: false };
