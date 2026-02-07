@@ -46,6 +46,11 @@ function createWindow() {
     height: windowState.height,
     backgroundColor: '#000000',
     titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#0d1117',
+      symbolColor: '#d1d5db',
+      height: 36
+    },
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -212,11 +217,12 @@ ipcMain.handle('terminal:getCwd', async (_, id) => {
   if (!ptyProcess) return null;
   try {
     const pid = ptyProcess.pid;
-    const result = execSync(`wmic process where ProcessId=${pid} get ExecutablePath 2>nul || echo ""`, {
-      encoding: 'utf-8',
-      timeout: 2000
-    });
-    return null;
+    // Get child processes of the shell, then get their working directory
+    const result = execSync(
+      `powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path | Split-Path -Parent)"`,
+      { encoding: 'utf-8', timeout: 3000, stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim();
+    return result || null;
   } catch {
     return null;
   }
@@ -769,7 +775,8 @@ ipcMain.handle('search:grep', async (_, dirPath, query, useRegex, caseSensitive)
   try {
     const escapedQuery = query.replace(/"/g, '\\"');
     const caseFlag = caseSensitive ? '' : '/I';
-    const cmd = `findstr /S /N ${caseFlag} "${escapedQuery}" "${dirPath}\\*"`;
+    const regexFlag = useRegex ? '/R' : '/L';
+    const cmd = `findstr /S /N ${caseFlag} ${regexFlag} "${escapedQuery}" "${dirPath}\\*"`;
     const stdout = execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000, maxBuffer: 1024 * 1024 });
     return { stdout };
   } catch (e) {
@@ -896,7 +903,7 @@ ipcMain.handle('processes:ports', async () => {
 
 ipcMain.handle('processes:kill', async (_, pid) => {
   try {
-    process.kill(parseInt(pid), 'SIGTERM');
+    execSync(`taskkill /PID ${parseInt(pid)} /F`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 5000 });
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
