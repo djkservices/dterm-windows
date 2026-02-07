@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="dTerm">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>dTerm</title>
+</head>
+<body>
+  <div id="app">
+
+    <!-- Login View -->
+    <div class="view active" id="view-login">
+      <div class="login-container">
+        <img class="login-logo" src="icons/icon-192.png" alt="dTerm">
+        <div class="login-title">dTerm</div>
+        <div class="login-subtitle">Sign in to your account</div>
+
+        <div id="login-form">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" id="login-username" type="text" placeholder="Enter username" autocapitalize="none" autocorrect="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="login-password" type="password" placeholder="Enter password">
+          </div>
+          <div id="login-error" class="text-danger mb-8" style="font-size:13px;display:none;"></div>
+          <button class="btn btn-primary" id="login-btn" onclick="handleLogin()">Sign In</button>
+          <button class="form-link" onclick="showRegisterForm()">Don't have an account? Sign up</button>
+        </div>
+
+        <div id="register-form" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" id="reg-username" type="text" placeholder="Choose username" autocapitalize="none" autocorrect="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" id="reg-email" type="email" placeholder="Enter email">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="reg-password" type="password" placeholder="Choose password">
+          </div>
+          <div id="register-error" class="text-danger mb-8" style="font-size:13px;display:none;"></div>
+          <button class="btn btn-primary" id="register-btn" onclick="handleRegister()">Create Account</button>
+          <button class="form-link" onclick="showLoginForm()">Already have an account? Sign in</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App (shown after login) -->
+    <div id="main-app" style="display:none;">
+
+      <!-- Sidebar -->
+      <div id="sidebar">
+        <div class="sidebar-logo">
+          <img src="icons/icon-192.png" alt="" class="sidebar-logo-img">
+          <span class="sidebar-logo-text">dTerm</span>
+        </div>
+        <div class="sidebar-nav">
+          <button class="sidebar-btn active" data-panel="dashboard" onclick="showPanel('dashboard')">
+            <span class="sb-icon">&#9633;</span><span class="sb-label">Dashboard</span>
+          </button>
+          <button class="sidebar-btn" data-panel="tools" onclick="showPanel('tools')">
+            <span class="sb-icon">&#9881;</span><span class="sb-label">Tools</span>
+          </button>
+          <button class="sidebar-btn" data-panel="notes" onclick="showPanel('notes')">
+            <span class="sb-icon">&#9998;</span><span class="sb-label">Notes</span>
+          </button>
+          <button class="sidebar-btn" data-panel="snippets" onclick="showPanel('snippets')">
+            <span class="sb-icon">&#10100;</span><span class="sb-label">Snippets</span>
+          </button>
+          <button class="sidebar-btn" data-panel="monitors" onclick="showPanel('monitors')">
+            <span class="sb-icon">&#9678;</span><span class="sb-label">Monitors</span>
+          </button>
+          <button class="sidebar-btn" data-panel="messages" onclick="showPanel('messages')">
+            <span class="sb-icon">&#9993;</span><span class="sb-label">Messages</span>
+          </button>
+          <button class="sidebar-btn" data-panel="collab" onclick="showPanel('collab')">
+            <span class="sb-icon">&#9734;</span><span class="sb-label">Collab</span>
+          </button>
+          <button class="sidebar-btn" data-panel="ai" onclick="showPanel('ai')">
+            <span class="sb-icon">&#9672;</span><span class="sb-label">AI</span>
+          </button>
+          <button class="sidebar-btn" data-panel="search" onclick="showPanel('search')">
+            <span class="sb-icon">&#8981;</span><span class="sb-label">Search</span>
+          </button>
+        </div>
+        <div class="sidebar-bottom">
+          <button class="sidebar-btn" data-panel="profile" onclick="showPanel('profile')">
+            <span class="sb-icon">&#9679;</span><span class="sb-label">Profile</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div id="content-area">
+        <!-- Top Bar -->
+        <div class="top-bar">
+          <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleSidebar()">&#9776;</button>
+          <span class="top-bar-title" id="top-bar-title">Dashboard</span>
+          <button class="top-bar-action" id="top-bar-action" style="display:none;"></button>
+        </div>
+
+        <!-- Panels -->
+        <div class="panel active" id="panel-dashboard">
+          <div class="summary-row">
+            <div class="summary-card" onclick="showPanel('monitors')">
+              <div class="summary-count" id="summary-monitors">0</div>
+              <div class="summary-label">Monitors</div>
+            </div>
+            <div class="summary-card" id="summary-alerts-card">
+              <div class="summary-count text-warning" id="summary-alerts">0</div>
+              <div class="summary-label">Alerts</div>
+            </div>
+            <div class="summary-card" onclick="showPanel('messages')">
+              <div class="summary-count" id="summary-messages">0</div>
+              <div class="summary-label">Messages</div>
+            </div>
+          </div>
+
+          <div class="section-header">
+            <span class="section-title">Recent Alerts</span>
+            <button class="section-action" onclick="showPanel('monitors')">View all</button>
+          </div>
+          <div id="dashboard-alerts"></div>
+
+          <div class="section-header">
+            <span class="section-title">Messages</span>
+            <button class="section-action" onclick="showPanel('messages')">View all</button>
+          </div>
+          <div id="dashboard-messages"></div>
+
+          <div class="section-header">
+            <span class="section-title">Notes</span>
+          </div>
+          <div id="dashboard-notes"></div>
+        </div>
+
+        <div class="panel" id="panel-tools">
+          <div id="tools-panel">
+            <div id="tools-list"></div>
+          </div>
+          <div id="tools-content" style="display:none;"></div>
+        </div>
+
+        <div class="panel" id="panel-notes">
+          <div id="notes-panel-content"></div>
+        </div>
+
+        <div class="panel" id="panel-snippets">
+          <div id="snippets-panel-content"></div>
+        </div>
+
+        <div class="panel" id="panel-monitors">
+          <div id="monitors-list"></div>
+        </div>
+
+        <div class="panel" id="panel-messages">
+          <div id="messages-list"></div>
+        </div>
+
+        <div class="panel" id="panel-collab">
+          <div id="collab-content"></div>
+        </div>
+
+        <div class="panel" id="panel-ai">
+          <div id="ai-content"></div>
+        </div>
+
+        <div class="panel" id="panel-search">
+          <div id="search-content"></div>
+        </div>
+
+        <div class="panel" id="panel-profile">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profile-avatar"></div>
+            <div class="profile-name" id="profile-name"></div>
+            <div class="profile-email" id="profile-email"></div>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-row">
+              <span class="profile-row-label">Push Notifications</span>
+              <label class="toggle">
+                <input type="checkbox" id="push-toggle" onchange="handlePushToggle(this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div id="push-status" style="padding:10px 14px;font-size:13px;color:var(--text-muted);background:var(--bg-secondary);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);display:none;"></div>
+          </div>
+
+          <div class="profile-section" id="push-enable-section" style="display:none;">
+            <button class="btn btn-primary w-full" id="push-enable-btn" onclick="handleEnablePush()">Enable Push Notifications</button>
+          </div>
+
+          <div class="profile-section">
+            <div class="profile-row" onclick="showPanel('notes')" style="cursor:pointer;">
+              <span class="profile-row-label">Notes</span>
+              <span class="profile-row-value" id="profile-notes-count">0</span>
+            </div>
+            <div class="profile-row" onclick="showPanel('snippets')" style="cursor:pointer;">
+              <span class="profile-row-label">Snippets</span>
+              <span class="profile-row-value" id="profile-snippets-count">0</span>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <button class="btn btn-danger w-full" onclick="handleLogout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Bottom Nav -->
+      <div id="bottom-nav">
+        <button class="nav-item active" data-panel="dashboard" onclick="showPanel('dashboard')">
+          <span class="nav-icon">&#9633;</span><span>Home</span>
+        </button>
+        <button class="nav-item" data-panel="tools" onclick="showPanel('tools')">
+          <span class="nav-icon">&#9881;</span><span>Tools</span>
+        </button>
+        <button class="nav-item" data-panel="monitors" onclick="showPanel('monitors')">
+          <span class="nav-icon">&#9678;</span><span>Monitors</span>
+        </button>
+        <button class="nav-item" data-panel="messages" onclick="showPanel('messages')">
+          <span class="nav-icon">&#9993;</span><span>Messages</span>
+        </button>
+        <button class="nav-item" data-panel="profile" onclick="showPanel('profile')">
+          <span class="nav-icon">&#9679;</span><span>Profile</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Monitor Modal -->
+    <div class="modal-overlay" id="modal-add-monitor">
+      <div class="modal">
+        <div class="modal-title">Add Monitor</div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="monitor-type">
+            <option value="domain">Domain Expiry</option>
+            <option value="ssl">SSL Certificate</option>
+            <option value="uptime">Uptime Check</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="monitor-target-label">Domain</label>
+          <input class="form-input" id="monitor-target" placeholder="example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Label (optional)</label>
+          <input class="form-input" id="monitor-label" placeholder="My Website">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alert when expiring within (days)</label>
+          <input class="form-input" id="monitor-alert-days" type="number" value="30" min="1" max="365">
+        </div>
+        <div id="monitor-add-error" class="text-danger mb-8" style="font-size:13px;display:none;"></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary" style="flex:1;" onclick="closeAddMonitor()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1;" id="monitor-add-btn" onclick="handleAddMonitor()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compose Message Modal -->
+    <div class="modal-overlay" id="modal-compose">
+      <div class="modal">
+        <div class="modal-title">New Message</div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="compose-subject">
+            <option value="Bug">Bug Report</option>
+            <option value="Idea">Feature Request</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea class="form-input" id="compose-body" rows="5" placeholder="Describe your bug or idea..."></textarea>
+        </div>
+        <div id="compose-error" class="text-danger mb-8" style="font-size:13px;display:none;"></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary" style="flex:1;" onclick="closeCompose()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1;" id="compose-send-btn" onclick="handleSendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snippet Edit Modal -->
+    <div class="modal-overlay" id="modal-edit-snippet">
+      <div class="modal">
+        <div class="modal-title" id="snippet-modal-title">New Snippet</div>
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" id="snippet-edit-name" placeholder="Snippet name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Language</label>
+          <select class="form-select" id="snippet-edit-lang">
+            <option value="text">Text</option>
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="php">PHP</option>
+            <option value="bash">Bash</option>
+            <option value="sql">SQL</option>
+            <option value="json">JSON</option>
+            <option value="typescript">TypeScript</option>
+            <option value="ruby">Ruby</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+            <option value="swift">Swift</option>
+            <option value="java">Java</option>
+            <option value="csharp">C#</option>
+            <option value="cpp">C++</option>
+            <option value="yaml">YAML</option>
+            <option value="xml">XML</option>
+            <option value="markdown">Markdown</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Code</label>
+          <textarea class="form-input" id="snippet-edit-code" rows="10" placeholder="Paste your code here..." style="font-family:'SF Mono','Menlo','Monaco',monospace;font-size:13px;"></textarea>
+        </div>
+        <div id="snippet-edit-error" class="text-danger mb-8" style="font-size:13px;display:none;"></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary" style="flex:1;" onclick="closeSnippetEdit()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1;" id="snippet-save-btn" onclick="handleSaveSnippet()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="tools.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

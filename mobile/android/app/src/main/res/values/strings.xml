@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">dTerm</string>
+    <string name="title_activity_main">dTerm</string>
+    <string name="package_name">com.mynetworktools.dterm</string>
+    <string name="custom_url_scheme">com.mynetworktools.dterm</string>
+</resources>

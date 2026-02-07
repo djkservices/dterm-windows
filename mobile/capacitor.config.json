@@ -1,0 +1,14 @@
+{
+  "appId": "com.mynetworktools.dterm",
+  "appName": "dTerm",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#0d1117"
+    }
+  }
+}
