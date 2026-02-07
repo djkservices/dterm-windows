@@ -1,6 +1,6 @@
 {
   "name": "dterm",
-  "version": "3.0.2",
+  "version": "3.0.0",
   "description": "Developer workspace with terminal, file browser, code editor, FTP, and notes",
   "author": "djkservices",
   "main": "main.js",
